@@ -1,112 +1,31 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
+
+
 #include "main.h"
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-#define CAN_ID 121
-#define CAN_TEST 1
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
-CAN_HandleTypeDef hcan;
-
-UART_HandleTypeDef huart1;
-DMA_HandleTypeDef hdma_usart1_tx;
-
-CAN_TxHeaderTypeDef TxHeader;
-uint32_t TxMailbox = 0;
-uint8_t TxData[8] = {0};
+#include "can.h"
+#include "ushell.h"
 
 
-/* USER CODE BEGIN PV */
 
-/* USER CODE END PV */
 
-/* Private function prototypes -----------------------------------------------*/
+
+
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_CAN_Init(void);
-static void can_test();
-/* USER CODE BEGIN PFP */
 
-/* USER CODE END PFP */
 
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-CAN_RxHeaderTypeDef RxHeader;
-uint8_t RxData[10] = {0};
-
-/* USER CODE END 0 */
-
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
 int main(void)
 {
 
-
-	//маркеры начала сообщения - поменять на свой вкус
-	RxData[0] = 0xFF;
-	RxData[1] = 0xFA;
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
-  /* Configure the system clock */
   SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
 
-  /* USER CODE END SysInit */
-
-  /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USART1_UART_Init();
-  MX_CAN_Init();
+//  MX_USART1_UART_Init();
+  ushell_init();
+  can_init();
+
   /* USER CODE BEGIN 2 */
  __enable_irq();
   /* USER CODE END 2 */
@@ -167,144 +86,7 @@ void SystemClock_Config(void)
   }
 }
 
-/**
-  * @brief CAN Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_CAN_Init(void)
-{
 
-  /* USER CODE BEGIN CAN_Init 0 */
-
-  /* USER CODE END CAN_Init 0 */
-
-  /* USER CODE BEGIN CAN_Init 1 */
-  /* USER CODE END CAN_Init 1 */
-  hcan.Instance = CAN1;
- // hcan.Init.Prescaler = 90;
-  hcan.Init.Prescaler = 20;
-
-  hcan.Init.Mode =CAN_MODE_NORMAL;
-
-
-
-
-  hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan.Init.TimeSeg1 = CAN_BS1_12TQ;
-  hcan.Init.TimeSeg2 = CAN_BS2_5TQ;
-
-
-  hcan.Init.TimeTriggeredMode = DISABLE;
-  hcan.Init.AutoBusOff = ENABLE;
-  hcan.Init.AutoWakeUp = DISABLE;
-  hcan.Init.AutoRetransmission = DISABLE;
-  hcan.Init.ReceiveFifoLocked = DISABLE;
-  hcan.Init.TransmitFifoPriority = ENABLE;
-  if (HAL_CAN_Init(&hcan) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN CAN_Init 2 */
-
-  CAN_FilterTypeDef canFilterConfig;
-  canFilterConfig.FilterBank = 0;
-  canFilterConfig.FilterMode = CAN_FILTERMODE_IDLIST;
-  canFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-  canFilterConfig.FilterIdHigh =CAN_ID<<5;
-  canFilterConfig.FilterIdLow = 0x0000;
-  canFilterConfig.FilterMaskIdHigh = CAN_ID<<5;
-  canFilterConfig.FilterMaskIdLow = 0x0000;
-  canFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
-  canFilterConfig.FilterActivation = ENABLE;
-
-
-
-  if(HAL_CAN_ConfigFilter(&hcan, &canFilterConfig) != HAL_OK)
-  {
-  Error_Handler();
-  }
-
-  HAL_StatusTypeDef status=HAL_CAN_Start(&hcan);
-
-  HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_ERROR | CAN_IT_BUSOFF | CAN_IT_LAST_ERROR_CODE);
-
-
-
-  /* USER CODE END CAN_Init 2 */
-
-}
-
-
-
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
-    if(HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, &RxData[2]) == HAL_OK){
-    HAL_UART_Transmit_DMA(&huart1,RxData,10);
-   // can_test();
-    }
-}
-
-
-
-/**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-
-  //чтобы коллизии не случилось в передаче,передавать быстрее чем can пакет
-  huart1.Init.BaudRate = 115200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
-
-}
-
-
-static void can_test(){
-
-
-	TxHeader.StdId = 121;
-	TxHeader.ExtId = 0;
-	TxHeader.RTR = CAN_RTR_DATA; //CAN_RTR_REMOTE
-	TxHeader.IDE = CAN_ID_STD;   // CAN_ID_EXT
-	TxHeader.DLC = 8;
-	TxHeader.TransmitGlobalTime = 0;
-
-
-	for(uint8_t i = 0; i < 8; i++) {
-		TxData[i] = (i + 10);
-	}
-	HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox);
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
 static void MX_GPIO_Init(void)
 {
 
